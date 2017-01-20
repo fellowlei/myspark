@@ -1,0 +1,246 @@
+Spark入门：第一个Spark应用程序：WordCount
+http://dblab.xmu.edu.cn/blog/986-2/
+
+启动spark-shell
+cd /usr/local/spark
+./bin/spark-shell
+....//这里省略启动过程显示的一大堆信息
+scala>
+
+加载本地文件
+val textFile = sc.textFile("file:///usr/local/spark/mycode/wordcount/word.txt")
+textFile.first()
+
+保存本地文件
+textFile.saveAsTextFile("file:///usr/local/spark/mycode/wordcount/writeback")
+
+
+
+加载HDFS中的文件
+val textFile = sc.textFile("hdfs://localhost:9000/user/hadoop/word.txt")
+textFile.first()
+textFile.saveAsTextFile("hdfs://localhost:9000/user/hadoop/writeback")
+
+词频统计
+val textFile = sc.textFile("file:///usr/local/spark/mycode/wordcount/word.txt")
+val wordCount = textFile.flatMap(line => line.split(" ")).map(word => (word, 1)).reduceByKey((a, b) => a + b)
+wordCount.collect()
+
+
+###RDD编程###
+1.从文件系统中加载数据创建RDD
+val lines = sc.textFile("file:///usr/local/spark/mycode/rdd/word.txt")
+
+2.通过并行集合（数组）创建RDD
+val array = Array(1,2,3,4,5)
+val rdd = sc.parallelize(array)
+
+val list = List(1,2,3,4,5)
+val rdd = sc.parallelize(list)
+
+
+filter()操作的实例
+val lines = sc.textFile("file:///usr/local/spark/mycode/rdd/word.txt")
+lines.filter(line => line.contains("Spark")).count()
+
+val lines = sc.textFile("file:///usr/local/spark/mycode/rdd/word.txt")
+lines.map(line => line.split(" ").size).reduce((a,b) => if (a>b) a else b)
+
+
+持久化
+val list = List("Hadoop","Spark","Hive")
+val rdd = sc.parallelize(list)
+rdd.cache()  //会调用persist(MEMORY_ONLY)，但是，语句执行到这里，并不会缓存rdd，这是rdd还没有被计算生成
+println(rdd.count()) //第一次行动操作，触发一次真正从头到尾的计算，这时才会执行上面的rdd.cache()，把这个rdd放到缓存中
+println(rdd.collect().mkString(",")) //第二次行动操作，不需要触发从头到尾的计算，只需要重复使用上面缓存中的rdd
+
+
+###键值对RDD###
+
+第一种创建方式：从文件中加载
+val lines = sc.textFile("file:///usr/local/spark/mycode/pairrdd/word.txt")
+val pairRDD = lines.flatMap(line => line.split(" ")).map(word => (word,1))
+pairRDD.foreach(println)
+
+第二种创建方式：通过并行集合（数组）创建RDD
+val list = List("Hadoop","Spark","Hive","Spark")
+val rdd = sc.parallelize(list)
+val pairRDD = rdd.map(word => (word,1)
+pairRDD.foreach(println)
+
+常用的键值对转换操作
+
+scala> pairRDD.reduceByKey((a,b)=>a+b).foreach(println)
+(Spark,2)
+(Hive,1)
+(Hadoop,1)
+
+scala> pairRDD.groupByKey().foreach(println)
+(Spark,CompactBuffer(1, 1))
+(Hive,CompactBuffer(1))
+(Hadoop,CompactBuffer(1))
+
+scala> pairRDD.keys.foreach(println)
+Hadoop
+Spark
+Hive
+Spark
+
+pairRDD.values.foreach(println)
+1
+1
+1
+1
+
+pairRDD.sortByKey().foreach(println)
+(Hadoop,1)
+(Hive,1)
+(Spark,1)
+(Spark,1)
+
+pairRDD.mapValues(x => x+1).foreach(println)
+(Hadoop,2)
+(Spark,2)
+(Hive,2)
+(Spark,2)
+
+val pairRDD1 = sc.parallelize(Array(("spark",1),("spark",2),("hadoop",3),("hadoop",5)))
+val pairRDD2 = sc.parallelize(Array(("spark","fast")))
+pairRDD1.join(pairRDD2)
+pairRDD1.join(pairRDD2).foreach(println)
+(spark,(1,fast))
+(spark,(2,fast))
+
+综合实例
+val rdd = sc.parallelize(Array(("spark",2),("hadoop",6),("hadoop",4),("spark",6)))
+rdd.mapValues(x => (x,1)).reduceByKey((x,y) => (x._1+y._1,x._2 + y._2)).mapValues(x => (x._1 / x._2)).collect()
+
+
+###数据读写###
+文件数据读写
+本地文件系统的数据读写
+val textFile = sc.textFile("file:///usr/local/spark/mycode/wordcount/word.txt")
+textFile.first()
+textFile.saveAsTextFile("file:///usr/local/spark/mycode/wordcount/writeback.txt")
+
+分布式文件系统HDFS的数据读写
+val textFile = sc.textFile("hdfs://localhost:9000/user/hadoop/word.txt")
+textFile.first()
+textFile.saveAsTextFile("hdfs://localhost:9000/user/hadoop/writeback.txt")
+
+###################Spark SQL##########################################
+import org.apache.spark.sql.SQLContext
+val sqlContext = new SQLContext(sc)
+val df = sqlContext.read.json("file:///usr/local/spark/examples/src/main/resources/people.json")
+scala> df.show()
++----+-------+
+| age|   name|
++----+-------+
+|null|Michael|
+|  30|   Andy|
+|  19| Justin|
++----+-------+
+
+/打印模式信息
+scala> df.printSchema()
+root
+ |-- age: long (nullable = true)
+ |-- name: string (nullable = true)
+//选择多列
+scala> df.select(df("name"),df("age")+1).show()
++-------+---------+
+|   name|(age + 1)|
++-------+---------+
+|Michael|     null|
+|   Andy|       31|
+| Justin|       20|
++-------+---------+
+//条件过滤
+scala> df.filter(df("age") > 20 ).show()
+
++---+----+
+|age|name|
++---+----+
+| 30|Andy|
++---+----+
+//分组聚合
+scala> df.groupBy("age").count().show()
+
++----+-----+
+| age|count|
++----+-----+
+|null|    1|
+|  19|    1|
+|  30|    1|
++----+-----+
+
+//排序
+scala> df.sort(df("age").desc).show()
++----+-------+
+| age|   name|
++----+-------+
+|  30|   Andy|
+|  19| Justin|
+|null|Michael|
++----+-------+
+
+//多列排序
+scala> df.sort(df("age").desc, df("name").asc).show()
++----+-------+
+| age|   name|
++----+-------+
+|  30|   Andy|
+|  19| Justin|
+|null|Michael|
++----+-------+
+
+//对列进行重命名
+scala> df.select(df("name").as("username"),df("age")).show()
++--------+----+
+|username| age|
++--------+----+
+| Michael|null|
+|    Andy|  30|
+|  Justin|  19|
++--------+----+
+
+##从RDD转换得到DataFrame##
+import org.apache.spark.sql.SQLContext
+val sqlContext = new SQLContext(sc)
+import sqlContext.implicits._  //导入包，支持把一个RDD隐式转换为一个DataFrame
+scala> case class Person(name: String, age: Int) //定义一个case class
+val people = sc.textFile("file:///usr/local/spark/examples/src/main/resources/people.txt").map(_.split(",")).map(p => Person(p(0), p(1).trim.toInt)).toDF()
+people.registerTempTable("peopleTempTab") //必须注册为临时表才能供下面的查询使用
+val personsRDD = sqlContext.sql("select name,age from peopleTempTab where age > 20").rdd //最终生成一个RDD
+personsRDD.foreach(t => println("Name:"+t(0),"Age:"+t(1)))  //RDD中的每个元素都是一行记录，包含name和age两个字段，分别用t(0)和t(1)来获取值
+(Name:Michael,Age:29)
+(Name:Andy,Age:30)
+
+
+#使用编程方式定义RDD模式
+import org.apache.spark.sql.SQLContext
+val sqlContext = new SQLContext(sc)
+val people = sc.textFile("file:///usr/local/spark/examples/src/main/resources/people.txt")
+val schemaString = "name age" //定义一个模式字符串
+
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.types.{StructType, StructField, StringType}
+
+val schema = StructType( schemaString.split(" ").map(fieldName => StructField(fieldName, StringType, true))) //根据模式字符串生成模式
+val rowRDD = people.map(_.split(",")).map(p => Row(p(0), p(1).trim))  //对people这个RDD中的每一行元素都进行解析
+val peopleDataFrame = sqlContext.createDataFrame(rowRDD, schema)
+
+peopleDataFrame.registerTempTable("peopleTempTab") //必须注册为临时表才能供下面查询使用
+
+val personsRDD = sqlContext.sql("select name,age from peopleTempTab where age > 20").rdd
+scala> personsRDD.foreach(t => println("Name:"+t(0)+",Age:"+t(1)))
+(Name:Michael,Age:29)
+(Name:Andy,Age:30)
+
+#把RDD保存成文件
+import org.apache.spark.sql.SQLContext
+val sqlContext = new SQLContext(sc)
+val df = sqlContext.read.json("file:///usr/local/spark/examples/src/main/resources/people.json")
+df.rdd.saveAsTextFile("file:///usr/local/spark/mycode/newpeople.txt")
+
+
