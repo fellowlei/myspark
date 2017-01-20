@@ -1,0 +1,118 @@
+Ubuntu安装hive，并配置mysql作为元数据库
+http://dblab.xmu.edu.cn/blog/install-hive/
+
+下载并解压hive源程序
+    下载hive(以apache-hive-1.2.1-bin.tar.gz为例)
+    #解压下载的hbase文件
+    sudo tar -zxvf apache-hive-1.2.1-bin.tar.gz -C /usr/local   # 解压到/usr/local中
+    #重命名
+    cd /usr/local/
+    sudo mv apache-hive-1.2.1-bin hive       # 将文件夹名改为hive
+
+    #修改权限
+    cd /usr/local
+    sudo chown -R yourusername:yourusername hive            # 修改文件权限
+
+    #添加环境变量
+    sudo vim /etc/profile
+    # 在最后添加下面内容
+    export HIVE_HOME=/usr/local/hive
+    export PATH=$PATH:$HIVE_HOME/bin
+
+    #使配置生效
+    source /etc/profile
+
+    修改/usr/local/hive/conf下的hive-site.xml
+    将hive-default.xml.template重命名为hive-default.xml
+    新建一个文件touch hive-site.xml，并在hive-site.xml中粘贴如下配置信息：
+    <configuration>
+      <property>
+        <name>javax.jdo.option.ConnectionURL</name>
+        <value>jdbc:mysql://localhost:3306/hive?createDatabaseIfNotExist=true</value>
+        <description>JDBC connect string for a JDBC metastore</description>
+      </property>
+      <property>
+        <name>javax.jdo.option.ConnectionDriverName</name>
+        <value>com.mysql.jdbc.Driver</value>
+        <description>Driver class name for a JDBC metastore</description>
+      </property>
+      <property>
+        <name>javax.jdo.option.ConnectionUserName</name>
+        <value>hive</value>
+        <description>username to use against metastore database</description>
+      </property>
+      <property>
+        <name>javax.jdo.option.ConnectionPassword</name>
+        <value>hive</value>
+        <description>password to use against metastore database</description>
+      </property>
+    </configuration>
+
+安装并配置mysql
+    安装MySQL
+    sudo apt-get update  #更新软件源
+    sudo apt-get install mysql-server  #安装mysql
+    启动和关闭mysql服务器
+    service mysql start
+    service mysql stop
+    #ubuntu使用mysqld脚本启动：/etc/inint.d/mysql restart
+
+    确认是否启动成功，mysql节点处于LISTEN状态表示启动成功：
+    sudo netstat -tap | grep mysql
+
+    进入mysql shell界面：
+    mysql -u root -p
+
+    解决利用sqoop导入MySQL中文乱码的问题（可以插入中文，但不能用sqoop导入中文）
+    导致导入时中文乱码的原因是character_set_server默认设置是latin1
+    建议按以下方式修改编码方式
+    (1)编辑配置文件。sudo vi /etc/mysql/mysql.conf.d/mysqld.cnf
+    (2)在[mysqld]下添加一行character_set_server=utf8
+    重启MySQL服务
+    service mysql restart
+    登陆MySQL，并查看MySQL目前设置的编码
+    show variables like "char%";
+
+
+下载mysql jdbc包
+    #解压
+    tar -zxvf mysql-connector-java-5.1.40.tar.gz
+    #将mysql-connector-java-5.1.40-bin.jar拷贝到/usr/local/hive/lib目录下
+    cp mysql-connector-java-5.1.40/mysql-connector-java-5.1.40-bin.jar  /usr/local/hive/lib
+    启动并登陆mysql shell
+    service mysql start #启动mysql服务
+    mysql -u root -p  #登陆shell界面
+
+    新建hive数据库
+    #这个hive数据库与hive-site.xml中localhost:3306/hive的hive对应，用来保存hive元数据
+    create database hive;
+
+    置mysql允许hive接入
+    #将所有数据库的所有表的所有权限赋给hive用户，后面的hive是配置hive-site.xml中配置的连接密码
+    grant all on *.* to hive@localhost identified by 'hive';
+    #刷新mysql系统权限关系表
+    flush privileges;
+
+    启动hive
+    启动hive之前，请先启动hadoop集群
+    start-all.sh #启动hadoop
+    hive  #启动hive
+
+    解决Hive启动，Hive metastore database is not initialized的错误。
+    出错原因：重新安装Hive和MySQL，导致版本、配置不一致。在终端执行如下命令:
+    schematool -dbType mysql -initSchema
+
+
+ubuntu如何启动/停止/重启MySQL
+一、 启动方式
+    1、使用 service 启动：service mysql start
+    2、使用 mysqld 脚本启动：/etc/inint.d/mysql start
+    3、使用 safe_mysqld 启动：safe_mysql&
+二、停止
+    1、使用 service 启动：service mysql stop
+    2、使用 mysqld 脚本启动：/etc/inint.d/mysql stop
+    3、mysqladmin shutdown
+
+三、重启
+    1、使用 service 启动：service mysql restart
+    2、使用 mysqld 脚本启动：/etc/inint.d/mysql restart

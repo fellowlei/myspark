@@ -1,5 +1,8 @@
 安装Hadoop及Spark for Ubuntu 16.04
 http://blog.csdn.net/wonder4/article/details/52245636
+sw
+jdk-8u91-Linux-x64.tar.gz
+scala-2.11.8.tgz
 安装JDK
     下载jdk(以jdk-8u91-Linux-x64.tar.gz为例)
     新建文件夹
@@ -57,12 +60,12 @@ Spark默认使用HDFS充当持久化层,所以需要安装Hadoop,当然也可以
     测试ssh无密登陆
     ssh localhost # 如果不提示输入密码则配置成功
 
-    下载Hadoop(以hadoop-2.7.2.tar.gz为例)
+    下载Hadoop(以hadoop-2.6.4.tar.gz为例)
     解压
-    sudo tar -xzvf hadoop-2.7.2.tar.gz -C /usr/local
+    sudo tar -xzvf hadoop-2.6.4.tar.gz -C /usr/local
     重命名
     cd /usr/local
-    sudo mv hadoop-2.7.2 hadoop
+    sudo mv hadoop-2.6.4 hadoop
     修改权限
     cd /usr/local
     sudo chown -R yourusername:yourusername hadoop
@@ -181,13 +184,13 @@ Hadoop伪分布式配置
     浏览器中输入地址:localhost:8088
 
 安装Spark
-    下载spark(以spark-2.0.0-bin-hadoop2.7.tgz为例)
+    下载spark(以spark-1.6.1-bin-hadoop2.6.tgz为例)
     解压下载的spark文件
-    sudo tar -zxf spark-2.0.0-bin-hadoop2.7.tgz -C /usr/local
+    sudo tar -zxf spark-1.6.1-bin-hadoop2.6.tgz -C /usr/local
 
     重命名
     cd /usr/local
-    sudo mv spark-2.0.0-bin-hadoop2.7 spark
+    sudo mv spark-1.6.1-bin-hadoop2.6 spark
 
     添加环境变量
     sudo vim /etc/profile
@@ -218,7 +221,7 @@ Hadoop伪分布式配置
 
     编写脚本
     启动Hadoop以及Spark
-
+    #start-hadoop.sh
     #!/bin/bash
     # 启动Hadoop以及yarn
     start-dfs.sh
@@ -229,7 +232,7 @@ Hadoop伪分布式配置
     /usr/local/spark/sbin/start-all.sh
 
     停止Hadoop以及Spark
-
+    #stop-hadoop.sh
     #!/bin/bash
     # 停止Spark
     /usr/local/spark/sbin/stop-all.sh

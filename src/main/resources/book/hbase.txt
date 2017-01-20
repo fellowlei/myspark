@@ -1,0 +1,93 @@
+安装hbase for Ubuntu 16.04
+http://dblab.xmu.edu.cn/blog/install-hbase/
+安装Hbase
+    类似于jdk的安装
+    下载hbase(以hbase-1.2.2-bin.tar.gz为例)
+    解压下载的hbase文件
+    sudo tar -xzvf hbase-1.2.2-bin.tar.gz  -C /usr/local
+    重命名
+    cd /usr/local
+    sudo mv hbase-1.2.2 hbase
+
+    修改权限
+    cd /usr/local
+    sudo chown -R yourusername:yourusername hbase
+
+    添加环境变量
+    sudo vim /etc/profile
+    # 在最后添加下面内容
+    export HBASE_HOME=/usr/local/hbase
+    export PATH=$HBASE_HOME/bin:$PATH
+
+    使配置生效
+    source /etc/profile
+
+    测试
+    hbase -version
+
+以下先决条件很重要，比如没有配置JAVA_HOME环境变量，就会报错。
+    - jdk
+    - Hadoop( 单机模式不需要，伪分布式模式和分布式模式需要)
+    - SSH
+
+
+单机模式配置
+    配置JAVA环境变量，并添加配置HBASE_MANAGES_ZK为true
+        vi /usr/local/hbase/conf/hbase-env.sh
+        # 在最后添加下面内容
+        export JAVA_HOME=/usr/lib/jvm/java
+        export HBASE_MANAGES_ZK=true
+    配置/usr/local/hbase/conf/hbase-site.xml
+        vi /usr/local/hbase/conf/hbase-site.xml
+        添加配置如下
+        <configuration>
+                <property>
+                        <name>hbase.rootdir</name>
+                        <value>file:///usr/local/hbase/hbase-tmp</value>
+                </property>
+        </configuration>
+    接下来测试运行,首先切换目录至HBase安装目录/usr/local/hbase；再启动HBase
+        启动HBase
+        cd /usr/local/hbase
+        bin/start-hbase.sh
+
+        打开shell命令行模式
+        bin/hbase shell
+
+        停止HBase运行
+        bin/stop-hbase.sh
+
+伪分布式模式配置
+    配置/usr/local/hbase/conf/hbase-env.sh
+        vi /usr/local/hbase/conf/hbase-env.sh
+        # 在最后添加下面内容
+        export JAVA_HOME=/usr/lib/jvm/java
+        export HBASE_CLASSPATH=/usr/local/hadoop/conf
+        export HBASE_MANAGES_ZK=true
+    配置/usr/local/hbase/conf/hbase-site.xml
+        vi /usr/local/hbase/conf/hbase-site.xml
+        <configuration>
+                <property>
+                        <name>hbase.rootdir</name>
+                        <value>hdfs://localhost:9000/hbase</value>
+                </property>
+                <property>
+                        <name>hbase.cluster.distributed</name>
+                        <value>true</value>
+                </property>
+        </configuration>
+    接下来测试运行HBase
+        启动hadoop
+        cd /usr/local/hadoop
+        sbin/start-dfs.sh
+        启动hbase
+        cd /usr/local/hbase
+        bin/start-hbase.sh
+
+        打开shell命令行模式
+        bin/hbase shell
+
+        停止HBase运行
+        bin/stop-hbase.sh
+
+
