@@ -21,7 +21,8 @@ create 'emp', 'personal data', 'professional data'
 
 put 'emp','1','professional:designation','manager'
 
-sqoop
+#sqoop demo
+#import from mysql to hdfs
 sqoop import --connect jdbc:mysql://localhost:3306/spark --username root -P --table student --m 1
 sqoop import --connect jdbc:mysql://localhost:3306/spark --table student  --username root -P --m 1 --where "age < 25" --target-dir /student
 sqoop import --connect jdbc:mysql://localhost:3306/spark --username root -P --table student --m 1 --incremental append --check-column id --last-value 3
@@ -36,3 +37,34 @@ sqoop eval --connect jdbc:mysql://localhost:3306/spark --username root --query "
 sqoop list-databases --connect jdbc:mysql://localhost:3306/ --username root -P
 sqoop list-tables --connect jdbc:mysql://localhost:3306/spark --username root -P
 
+
+# prepare mysql data
+CREATE TABLE `employee` (
+  `id` int(11) NOT NULL,
+  `name` varchar(20) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+
+insert into employee (id,name) values (1,'michael');
+insert into employee (id,name) values (2,'ted');
+insert into employee (id,name) values (3,'jack');
+
+CREATE TABLE `people` (
+  `id` int(11) NOT NULL,
+  `name` varchar(20) NOT NULL,
+  `year` varchar(10),
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+
+insert into people values (1,'jack','2015');
+insert into people values (2,'ted','2015');
+insert into people values (3,'billy','2015');
+insert into people values (4,'sara','2015');
+
+#import from mysql to hive
+sqoop import --connect jdbc:mysql://localhost:3306/spark --username root -P --table employee --hive-import --hive-table hive_employee --create-hive-table
+
+sqoop import --connect jdbc:mysql://localhost:3306/spark --username root -P --query 'select id,name from people where year="2015" AND $CONDITIONS'  --direct -m 2 --split-by id --hive-import --create-hive-table --hive-table hive_people --target-dir /user/hive_people --hive-partition-key year --hive-partition-value '2015'
+
+#import from mysql to hbase
+sqoop import --connect jdbc:mysql://localhost:3306/spark --username root -P --table employee --hbase-table employee --column-family info --hbase-row-key id -m 1
