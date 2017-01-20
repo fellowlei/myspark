@@ -1,0 +1,53 @@
+安装并配置mysql
+    安装MySQL
+    sudo apt-get update  #更新软件源
+    sudo apt-get install mysql-server  #安装mysql
+    启动和关闭mysql服务器
+    service mysql start
+    service mysql stop
+    #ubuntu使用mysqld脚本启动：/etc/inint.d/mysql restart
+
+    确认是否启动成功，mysql节点处于LISTEN状态表示启动成功：
+    sudo netstat -tap | grep mysql
+
+
+    #sudo apt-get install mysql-client  #安装mysql-client
+    进入mysql shell界面：
+    mysql -u root -p
+
+
+    #确认是否启动成功
+    查看mysql是否启动命令
+    ps -aux | grep mysqld
+    会看到如下类似内容
+    mysql 6396 0.0 1.5 10528 992 pts/3 S 16:16 0:00 /usr/local/mysql/
+
+    查看mysql是否在监 听端口命令
+    netstat -tl | grep mysql
+    会看到如下类似内容
+    tcp 0 0 *:mysql *:* LISTEN
+
+ubuntu如何启动/停止/重启MySQL
+一、 启动方式
+    1、使用 service 启动：service mysql start
+    2、使用 mysqld 脚本启动：/etc/inint.d/mysql start
+    3、使用 safe_mysqld 启动：safe_mysql&
+二、停止
+    1、使用 service 启动：service mysql stop
+    2、使用 mysqld 脚本启动：/etc/inint.d/mysql stop
+    3、mysqladmin shutdown
+
+三、重启
+    1、使用 service 启动：service mysql restart
+    2、使用 mysqld 脚本启动：/etc/inint.d/mysql restart
+
+
+解决MySQL中文乱码的问题
+    中文乱码的原因是character_set_server默认设置是latin1
+    建议按以下方式修改编码方式
+    (1)编辑配置文件。sudo vi /etc/mysql/mysql.conf.d/mysqld.cnf
+    (2)在[mysqld]下添加一行character_set_server=utf8
+    重启MySQL服务
+    service mysql restart
+    登陆MySQL，并查看MySQL目前设置的编码
+    show variables like "char%";

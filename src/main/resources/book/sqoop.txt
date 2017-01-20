@@ -1,5 +1,6 @@
 Sqoop教程
 http://www.yiibai.com/sqoop/
+http://blog.csdn.net/nsrainbow/article/details/41649671
 
 sw
 jdk-8u111-linux-x64.tar.gz
