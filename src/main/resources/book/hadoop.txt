@@ -1,17 +1,21 @@
 安装Hadoop及Spark for Ubuntu 16.04
 http://blog.csdn.net/wonder4/article/details/52245636
+
 sw
-jdk-8u91-Linux-x64.tar.gz
+jdk-8u111-linux-x64.tar.gz
+hadoop-2.6.4.tar.gz
 scala-2.11.8.tgz
+spark-1.6.1-bin-hadoop2.6.tgz
+
 安装JDK
-    下载jdk(以jdk-8u91-Linux-x64.tar.gz为例)
+    下载jdk(以jdk-8u111-linux-x64.tar.gz为例)
     新建文件夹
     sudo mkdir /usr/lib/jvm
     解压下载的jdk文件并移动到新建的文件夹下
-    sudo tar -xzvf jdk-8u91-linux-x64.tar.gz -C /usr/lib/jvm
+    sudo tar -xzvf jdk-8u111-linux-x64.tar.gz -C /usr/lib/jvm
     进入jvm文件夹并重命名解压出来的文件夹
     cd /usr/lib/jvm
-    sudo mv jdk1.8.0_91 jdk
+    sudo mv jdk1.8.0_111 jdk
 
     添加环境变量
     sudo vim /etc/profile

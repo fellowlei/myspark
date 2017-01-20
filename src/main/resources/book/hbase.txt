@@ -1,5 +1,11 @@
 安装hbase for Ubuntu 16.04
 http://dblab.xmu.edu.cn/blog/install-hbase/
+
+sw
+jdk-8u111-linux-x64.tar.gz
+hadoop-2.6.4.tar.gz
+hbase-1.2.2-bin.tar.gz
+
 安装Hbase
     类似于jdk的安装
     下载hbase(以hbase-1.2.2-bin.tar.gz为例)

@@ -1,6 +1,13 @@
 Ubuntu安装hive，并配置mysql作为元数据库
 http://dblab.xmu.edu.cn/blog/install-hive/
 
+sw
+jdk-8u111-linux-x64.tar.gz
+hadoop-2.6.4.tar.gz
+apache-hive-1.2.1-bin.tar.gz
+mysql-connector-java-5.1.40.tar.gz
+mysql5.6
+
 下载并解压hive源程序
     下载hive(以apache-hive-1.2.1-bin.tar.gz为例)
     #解压下载的hbase文件
