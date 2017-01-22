@@ -244,3 +244,110 @@ val df = sqlContext.read.json("file:///usr/local/spark/examples/src/main/resourc
 df.rdd.saveAsTextFile("file:///usr/local/spark/mycode/newpeople.txt")
 
 
+
+
+
+##################################################################################
+Spark独立应用程序编程
+http://dblab.xmu.edu.cn/blog/986-2/
+
+sw
+jdk-8u111-linux-x64.tar.gz
+sbt-0.13.13.tgz
+scala-2.11.8.tgz
+hadoop-2.6.4.tar.gz
+spark-1.6.1-bin-hadoop2.6.tgz
+
+下载并解压sbt源程序
+    下载sbt(以sbt-0.13.13.tgz为例)
+    #解压下载的sbt文件
+    sudo tar -zxvf sbt-0.13.13.tgz -C /usr/local   # 解压到/usr/local中
+    #重命名
+    cd /usr/local/
+    sudo mv sbt-0.13.13 sbt       # 将文件夹名改为sbt
+
+    #修改权限
+    cd /usr/local
+    sudo chown -R yourusername:yourusername sbt            # 修改文件权限
+
+    #添加环境变量
+    sudo vim /etc/profile
+    # 在最后添加下面内容
+    export SBT_HOME=/usr/local/hive
+    export PATH=$PATH:$SBT_HOME/bin
+
+    使配置生效
+    source /etc/profile
+
+    测试
+    sbt sbt-version
+    （请确保电脑处于联网状态，首次运行会处于 “Getting org.scala-sbt sbt 0.13.11 ...” 的下载状态，请耐心等待。笔者等待了 7 分钟才出现第一条下载提示)
+
+spark编写独立应用程序执行词频统计
+     mkdir -p /usr/local/spark/mycode/wordcount/
+     cd /usr/local/spark/mycode/wordcount/
+     mkdir -p src/main/scala  //这里加入-p选项，可以一起创建src目录及其子目录
+
+     请在“/usr/local/spark/mycode/wordcount/src/main/scala”目录下新建一个test.scala文件，里面包含如下代码：
+
+     import org.apache.spark.SparkContext
+     import org.apache.spark.SparkContext._
+     import org.apache.spark.SparkConf
+
+     object WordCount {
+         def main(args: Array[String]) {
+             val inputFile =  "file:///usr/local/spark/mycode/wordcount/word.txt"
+             val conf = new SparkConf().setAppName("WordCount")
+             val sc = new SparkContext(conf)
+                     val textFile = sc.textFile(inputFile)
+                     val wordCount = textFile.flatMap(line => line.split(" ")).map(word => (word, 1)).reduceByKey((a, b) => a + b)
+                     wordCount.foreach(println)
+         }
+     }
+
+     通过 sbt 进行编译打包
+     cd /usr/local/spark/mycode/wordcount/
+     vim simple.sbt
+
+     通过上面代码，新建一个simple.sbt文件，请在该文件中输入下面代码：
+     name := "Simple Project"
+     version := "1.0"
+     scalaVersion := "2.11.8"
+     libraryDependencies += "org.apache.spark" %% "spark-core" % "1.6.1"
+
+     下面我们使用 sbt 打包 Scala 程序。为保证 sbt 能正常运行，先执行如下命令检查整个应用程序的文件结构：
+     cd /usr/local/spark/mycode/wordcount/
+     find .
+
+     应该是类似下面的文件结构：
+     .
+     ./src
+     ./src/main
+     ./src/main/scala
+     ./src/main/scala/test.scala
+     ./simple.sbt
+     ./word.txt
+
+     接着，我们就可以通过如下代码将整个应用程序打包成 JAR（首次运行同样需要下载依赖包 ）：
+
+    cd /usr/local/spark/mycode/wordcount/  //请一定把这目录设置为当前目录
+    /usr/local/sbt/sbt package
+    上面执行过程需要消耗几分钟时间
+
+    生成的 jar 包的位置为 /usr/local/spark/mycode/wordcount/target/scala-2.11/wordcount-project_2.11-1.0.jar。
+
+
+    最后，通过 spark-submit 运行程序。我们就可以将生成的 jar 包通过 spark-submit 提交到 Spark 中运行了，命令如下：
+
+    /usr/local/spark/bin/spark-submit --class "WordCount"  /usr/local/spark/mycode/wordcount/target/scala-2.11/wordcount-project_2.11-1.0.jar
+
+
+
+
+
+
+
+
+
+
+
