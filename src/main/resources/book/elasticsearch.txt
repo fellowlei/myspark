@@ -13,7 +13,7 @@ elasticsearch-2.3.4.tar.gz
 安装elasticsearch
     类似于jdk的安装
     下载elasticsearch(以elasticsearch-2.3.4.tar.gz为例)
-    解压下载的scala文件
+    解压下载的elasticsearch文件
     sudo tar -xzvf elasticsearch-2.3.4.tar.gz -C /usr/local
     重命名
     cd /usr/local
