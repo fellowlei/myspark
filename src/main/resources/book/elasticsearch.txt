@@ -31,6 +31,17 @@ elasticsearch-2.3.4.tar.gz
 
     默认情况下，Elasticsearch使用9200来提供对其REST API的访问
 
+    安装head插件
+    cd elasticsearch/bin
+    $ ./plugin install mobz/elasticsearch-head
+    启动 elasticsearch
+    再访问http://localhost:9200/_plugin/head/
+
+    IK分词器安装
+    https://github.com/medcl/elasticsearch-analysis-ik
+
+
+
 探索你的集群
     查看我们集群的状态
     curl 'localhost:9200/_cat/health?v'
@@ -59,7 +70,201 @@ elasticsearch-2.3.4.tar.gz
     curl 'localhost:9200/_cat/indices?v'
 
 
+    索引/替换文档
+    curl -XPUT 'localhost:9200/customer/external/1?pretty' -d '
+            {
+              "name": "Jane Doe"
+            }'
 
+    更新文档
+    curl -XPOST 'localhost:9200/customer/external/1/_update?pretty' -d '
+            {
+              "doc": { "name": "Jane Doe" }
+            }'
+
+    删除文档
+    curl -XDELETE 'localhost:9200/customer/external/2?pretty'
+    能够一次删除符合某个查询条件的多个文档
+    curl -XDELETE 'localhost:9200/customer/external/_query?pretty' -d '
+            {
+              "query": { "match": { "name": "John" } }
+            }'
+
+
+    批处理
+    在一次bulk操作中索引了两个文档
+    curl -XPOST 'localhost:9200/customer/external/_bulk?pretty' -d '
+            {"index":{"_id":"1"}}
+            {"name": "John Doe" }
+            {"index":{"_id":"2"}}
+            {"name": "Jane Doe" }
+
+
+    载入样本数据
+    https://github.com/bly2k/files/blob/master/accounts.zip?raw=true下载这个样本数据集
+    curl -XPOST 'localhost:9200/bank/account/_bulk?pretty' --data-binary @accounts.json
+
+    curl 'localhost:9200/_cat/indices?v'
+    health index pri rep docs.count docs.deleted store.size pri.store.size
+    yellow bank    5   1       1000            0    424.4kb        424.4kb
+
+
+    搜索API
+    返回bank索引中的所有的文档
+    curl 'localhost:9200/bank/_search?q=*&pretty'
+
+    对于这个响应，我们看到了以下的部分：
+    - took —— Elasticsearch执行这个搜索的耗时，以毫秒为单位
+    - timed_out —— 指明这个搜索是否超时
+    - _shards —— 指出多少个分片被搜索了，同时也指出了成功/失败的被搜索的shards的数量
+    - hits —— 搜索结果
+    - hits.total —— 能够匹配我们查询标准的文档的总数目
+    - hits.hits —— 真正的搜索结果数据（默认只显示前10个文档）
+    - _score和max_score —— 现在先忽略这些字段
+
+    使用请求体方法的等价搜索是
+    curl -XPOST 'localhost:9200/bank/_search?pretty' -d '
+            {
+              "query": { "match_all": {} }
+            }'
+
+    下面做了一次match_all并只返回第一个文档
+    curl -XPOST 'localhost:9200/bank/_search?pretty' -d '
+        {
+          "query": { "match_all": {} },
+          "size": 1
+        }'
+
+    做了一次match_all并且返回第11到第20个文档
+    curl -XPOST 'localhost:9200/bank/_search?pretty' -d '
+            {
+              "query": { "match_all": {} },
+              "from": 10,
+              "size": 10
+            }'
+    其中的from参数（0-based）从哪个文档开始，size参数指明从from参数开始，要返回多少个文档。
+    这个特性对于搜索结果分页来说非常有帮助。注意，如果不指定from的值，它默认就是0。
+
+    match_all并且以账户余额降序排序
+    curl -XPOST 'localhost:9200/bank/_search?pretty' -d '
+        {
+          "query": { "match_all": {} },
+          "sort": { "balance": { "order": "desc" } }
+        }'
+
+    不想返回完整的源文档，我们可以指定返回的几个字段
+    怎样返回两个字段account_number和balance
+    curl -XPOST 'localhost:9200/bank/_search?pretty' -d '
+            {
+              "query": { "match_all": {} },
+              "_source": ["account_number", "balance"]
+            }'
+    简单的字段搜索查询
+    返回账户编号为20的文档
+    curl -XPOST 'localhost:9200/bank/_search?pretty' -d '
+            {
+              "query": { "match": { "account_number": 20 } }
+            }'
+
+    返回地址中包含“mill”或者包含“lane”的账户
+    curl -XPOST 'localhost:9200/bank/_search?pretty' -d '
+            {
+              "query": { "match": { "address": "mill lane" } }
+            }'
+
+    match的变体（match_phrase），它会去匹配短语“mill lane”
+    curl -XPOST 'localhost:9200/bank/_search?pretty' -d '
+            {
+              "query": { "match_phrase": { "address": "mill lane" } }
+            }'
+
+
+    布尔查询。布尔查询允许我们利用布尔逻辑将较小的查询组合成较大的查询
+    例子组合了两个match查询，这个组合查询返回包含“mill”和“lane”的所有的账户
+    curl -XPOST 'localhost:9200/bank/_search?pretty' -d '
+       {
+         "query": {
+           "bool": {
+             "must": [
+               { "match": { "address": "mill" } },
+               { "match": { "address": "lane" } }
+             ]
+           }
+         }
+       }'
+
+    例子组合了两个match查询，它返回的是地址中包含“mill”或者“lane”的所有的账户
+    curl -XPOST 'localhost:9200/bank/_search?pretty' -d '
+            {
+              "query": {
+                "bool": {
+                  "should": [
+                    { "match": { "address": "mill" } },
+                    { "match": { "address": "lane" } }
+                  ]
+                }
+              }
+            }'
+    在上面的例子中，bool should语句指明，对于一个文档，查询列表中，只要有一个查询匹配，那么这个文档就被看成是匹配的
+
+    组合了两个查询，它返回地址中既不包含“mill”，同时也不包含“lane”的所有的账户信息
+    curl -XPOST 'localhost:9200/bank/_search?pretty' -d '
+        {
+          "query": {
+            "bool": {
+              "must_not": [
+                { "match": { "address": "mill" } },
+                { "match": { "address": "lane" } }
+              ]
+            }
+          }
+        }'
+    在上面的例子中， bool must_not语句指明，对于一个文档，查询列表中的的所有查询都必须都不为真，这个文档才被认为是匹配的
+
+
+
+    可以将bool查询放到这样的bool语句中来模拟复杂的、多等级的布尔逻辑
+    下面这个例子返回40岁以上并且不生活在ID（daho）的人的账户
+    curl -XPOST 'localhost:9200/bank/_search?pretty' -d '
+            {
+              "query": {
+                "bool": {
+                  "must": [
+                    { "match": { "age": "40" } }
+                  ],
+                  "must_not": [
+                    { "match": { "state": "ID" } }
+                  ]
+                }
+              }
+            }'
+
+    执行过滤器
+     Elasticsearch中的所有的查询都会触发相关度得分的计算
+     过滤器在概念上类似于查询，但是它们有非常快的执行速度
+     - 过滤器不会计算相关度的得分，所以它们在计算上更快一些
+     - 过滤器可以被缓存到内存中，这使得在重复的搜索查询上，其要比相应的查询快出许多。
+
+    例子使用一个被过滤的查询，其返回值是越在20000到30000之间（闭区间）的账户
+    curl -XPOST 'localhost:9200/bank/_search?pretty' -d '
+        {
+          "query": {
+            "filtered": {
+              "query": { "match_all": {} },
+              "filter": {
+                "range": {
+                  "balance": {
+                    "gte": 20000,
+                    "lte": 30000
+                  }
+                }
+              }
+            }
+          }
+        }'
+    分解上面的例子，被过滤的查询包含一个match_all查询（查询部分）和一个过滤器（filter部分）
+     通常情况下，要决定是使用过滤器还是使用查询，你就需要问自己是否需要相关度得分。
+     如果相关度是不重要的，使用过滤器，否则使用查询
 
 
 
