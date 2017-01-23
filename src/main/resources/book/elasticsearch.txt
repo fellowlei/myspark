@@ -1,0 +1,63 @@
+最完整的Elasticsearch 基础教程
+http://blog.csdn.net/cnweike/article/details/33736429
+http://www.yl1001.com/article/1501413876721421.htm
+
+sw
+jdk-8u111-linux-x64.tar.gz
+elasticsearch-2.3.4.tar.gz
+
+安装
+  Elasticsearch依赖Java
+  java -version
+
+安装elasticsearch
+    类似于jdk的安装
+    下载elasticsearch(以elasticsearch-2.3.4.tar.gz为例)
+    解压下载的scala文件
+    sudo tar -xzvf elasticsearch-2.3.4.tar.gz -C /usr/local
+    重命名
+    cd /usr/local
+    sudo mv elasticsearch-2.3.4 elasticsearch
+
+    启动Elasticsearch
+    cd /usr/local/elasticsearch
+    bin/elasticsearch
+
+    正如先前提到的，我们可以覆盖集群或者节点的名字。我们可以在启动Elasticsearch的时候通过命令行来指定
+     ./elasticsearch --cluster.name my_cluster_name --node.name my_node_name
+
+    默认情况下，Elasticsearch使用9200来提供对其REST API的访问
+
+探索你的集群
+    查看我们集群的状态
+    curl 'localhost:9200/_cat/health?v'
+
+    获得节集群中的节点列表
+    curl 'localhost:9200/_cat/nodes?v'
+
+    列出所有的索引
+    curl 'localhost:9200/_cat/indices?v'
+
+    创建一个索引
+    curl -XPUT 'localhost:9200/customer?pretty'
+
+    索引并查询一个文档
+    curl -XPUT 'localhost:9200/customer/external/1?pretty' -d '
+        {
+          "name": "John Doe"
+        }'
+
+    刚刚索引的文档取出来
+    curl -XGET 'localhost:9200/customer/external/1?pretty'
+
+
+    删除我们刚刚创建的索引，并再次列出所有的索引
+    curl -XDELETE 'localhost:9200/customer?pretty'
+    curl 'localhost:9200/_cat/indices?v'
+
+
+
+
+
+
+
