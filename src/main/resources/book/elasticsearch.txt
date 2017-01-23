@@ -267,8 +267,10 @@ elasticsearch-2.3.4.tar.gz
      如果相关度是不重要的，使用过滤器，否则使用查询
 
 
-#######################################3
-[搜索]ElasticSearch Java Api(一) －创建索引
+#############################################################################
+ElasticSearch Java Api
+#############################################################################
+##################[搜索]ElasticSearch Java Api(一) －创建索引##################
 http://blog.csdn.net/napoay/article/details/51707023
 
 ElasticSearch Java API官网文档：https://www.elastic.co/guide/en/elasticsearch/client/java-api/current/java-docs-index.html
@@ -360,7 +362,7 @@ boolean created = response.isCreated();
 
 
 
-ElasticSearch Java Api(二) -检索索引库
+##################ElasticSearch Java Api(二) -检索索引库##################
 http://blog.csdn.net/napoay/article/details/51746916
 
 查询
@@ -392,6 +394,106 @@ SearchResponse response = client.prepareSearch("blog").setTypes("article").setQu
 SearchResponse对象的getHits()方法获取查询结果,返回一个SearchHits的集合，遍历集合获取查询的文档信息：
 
 SearchHits hits = response.getHits();
+
+##################ElasticSearch Java Api(三) -更新索引库##################
+官网文档：https://www.elastic.co/guide/en/elasticsearch/client/java-api/current/java-docs-update.html
+一、UpdateRequest
+
+创建一个UpdateRequest,然后将其发送给client.
+
+UpdateRequest uRequest = new UpdateRequest();
+uRequest.index("blog");
+uRequest.type("article");
+uRequest.id("2");
+uRequest.doc(jsonBuilder().startObject().field("content", "学习目标 掌握java泛型的产生意义ssss").endObject());
+client.update(uRequest).get();
+
+二、prepareUpdate()
+2.1使用脚本方式
+
+首先打开elasticsearch-2.3.3/config/elasticsearch.yml,新增一行：
+
+script.engine.groovy.inline.update: on
+之后重启elasticsearch.
+
+client.prepareUpdate("blog", "article", "1")
+    .setScript(new Script("ctx._source.title = \"git入门\"", ScriptService.ScriptType.INLINE, null, null))
+    .get();
+
+2.2使用doc方式
+
+client.prepareUpdate("blog", "article", "1")
+                .setDoc(jsonBuilder().startObject().field("content", "SVN与Git对比。。。").endObject()).get();
+
+三、updateRequest
+
+UpdateRequest updateRequest = new UpdateRequest("blog", "article", "1")
+                .doc(jsonBuilder().startObject().field("commet", "0").endObject());
+client.update(updateRequest).get();
+
+这种方式可以新增字段。
+四、upsert
+
+如果文档不存在则创建新的索引.
+IndexRequest indexRequest = new IndexRequest("blog", "article", "10").source(jsonBuilder().startObject()
+            .field("title", "Git安装10").field("content", "学习目标 git。。。10").endObject());
+
+UpdateRequest uRequest2 = new UpdateRequest("blog", "article", "10").doc(
+            jsonBuilder().startObject().field("title", "Git安装").field("content", "学习目标 git。。。").endObject())
+            .upsert(indexRequest);
+client.update(uRequest2).get();
+这个例子中，如果blog/article/10存在，那么根据UpdateRequest更新索引；如果不存在，新建indexRequest索引.
+
+
+
+
+##################ElasticSearch Java Api(四) -删除索引##################
+http://blog.csdn.net/napoay/article/details/51781644
+删除可以是删除整个索引库，也可以根据文档id删除索引库下的文档，还可以通过query查询条件删除所有符合条件的数据。
+一、删除整个索引库
+
+下面的例子会删除indexName索引：
+
+DeleteIndexResponse dResponse = client.admin().indices().prepareDelete(indexName)
+                        .execute().actionGet();
+
+可以根据DeleteIndexResponse对象的isAcknowledged()方法判断删除是否成功,返回值为boolean类型.
+如果传人的indexName不存在会出现异常.可以先判断索引是否存在：
+
+IndicesExistsRequest inExistsRequest = new IndicesExistsRequest(indexName);
+
+IndicesExistsResponse inExistsResponse = client.admin().indices()
+                    .exists(inExistsRequest).actionGet();
+
+根据IndicesExistsResponse对象的isExists()方法的boolean返回值可以判断索引库是否存在.
+二、通过ID删除
+
+下面的例子是删除索引名为blog，类型为article，id为1的文档：
+
+DeleteResponse dResponse = client.prepareDelete("blog", "article", "1").execute().actionGet();
+
+通过DeleteResponse对象的isFound()方法，可以得到删除是否成功，返回值为boolean类型.
+三、通过Query删除
+
+elasticsearch-2.3 中和旧版本api不太一样，安装插件：
+
+sudo bin/plugin install delete-by-query
+
+集群有多个节点的情况下，每个节点都需要安装并重启.
+如果想要移除插件，可以执行以下命令：
+
+sudo bin/plugin remove delete-by-query
+
+删除索引名为twitter，类型为tweet，user字段中含有kimchy的所有文档：
+
+DELETE /twitter/tweet/_query?q=user:kimchy
+
+Java api参考Elasticsearch Java Api(六)–DeleteByQuery。
+
+
+
+
+
 
 
 
