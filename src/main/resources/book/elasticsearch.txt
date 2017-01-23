@@ -492,6 +492,89 @@ Java api参考Elasticsearch Java Api(六)–DeleteByQuery。
 
 
 
+##########################ElasticSearch同步MySql#################
+ElasticSearch同步MySql
+http://blog.csdn.net/napoay/article/details/51798589
+
+ElasticSearch同步MySQL的插件选择了elasticsearch-jdbc,理由是活跃度高，持续更新,最新版本兼容elasticsearch-2.3.4.
+一、下载
+JDBC importer 2.3.4.0
+下载地址：
+http://xbib.org/repository/org/xbib/elasticsearch/importer/elasticsearch-jdbc/2.3.4.0/elasticsearch-jdbc-2.3.4.0-dist.zip
+
+下载后解压,里面有bin、lib2个目录.
+
+二、mysql配置
+确保mysql能用，在mysql中新建一个test数据库
+mysql>create database test；
+
+新建一张user表
+mysql> create table user(id int(10) Not null,name char(10));
+
+插入几条数据.
+mysql> insert into user values("1","zhangsan");
+mysql> insert into user values("2","LiSi");
+mysql> insert into user values("3","WangWu");
+mysql> insert into user values("4","MaLiu");
+
+查看所有数据：
+
+mysql> select * from user;
++----+----------+
+| id | name     |
++----+----------+
+|  1 | zhangsan |
+|  2 | LiSi     |
+|  3 | WangWu   |
+|  4 | MaLiu    |
++----+----------+
+4 rows in set (0.00 sec)
+
+这样mysql中的数据就准备好了.
+三、导入数据
+
+新建一个odbc_es文件夹,新建mysql_import_es.sh脚本，脚本内容：
+
+bin=/usr/local/elasticsearch/elasticsearch-jdbc-2.3.4.0/bin
+lib=/usr/local/elasticsearch/elasticsearch-jdbc-2.3.4.0/lib
+echo '{
+    "type" : "jdbc",
+    "jdbc" : {
+        "elasticsearch.autodiscover":true,
+        "elasticsearch.cluster":"elasticsearch",
+        "url" : "jdbc:mysql://localhost:3306/test",
+        "user" : "root",
+        "useSSL":"true",
+        "password" : "1",
+        "sql" : "select *, id as _id from user",
+        "elasticsearch" : {
+             "host" : "127.0.0.1",
+             "port" : 9300
+        },
+        "index" : "test",
+        "type" : "user"
+    }
+}' | java \
+       -cp "${lib}/*" \
+       -Dlog4j.configurationFile=${bin}/log4j2.xml \
+       org.xbib.tools.Runner \
+       org.xbib.tools.JDBCImporter
+
+其中bin和lib用了绝对路径.
+添加可执行权限：
+chmod a+x mysql_import_es.sh
+
+执行脚本：
+ ./mysql_import_es.sh
+
+查看导入结果：
+http://localhost:9200/test/user/_search?pretty
+
+
+
+
+
+
 
 
 
