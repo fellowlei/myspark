@@ -267,5 +267,97 @@ elasticsearch-2.3.4.tar.gz
      如果相关度是不重要的，使用过滤器，否则使用查询
 
 
+#######################################3
+[搜索]ElasticSearch Java Api(一) －创建索引
+http://blog.csdn.net/napoay/article/details/51707023
+
+ElasticSearch Java API官网文档：https://www.elastic.co/guide/en/elasticsearch/client/java-api/current/java-docs-index.html
+一、生成JSON
+
+创建索引的第一步是要把对象转换为JSON字符串.官网给出了四种创建JSON文档的方法：
+1.1手写方式生成
+
+String json = "{" +
+        "\"user\":\"kimchy\"," +
+        "\"postDate\":\"2013-01-30\"," +
+        "\"message\":\"trying out Elasticsearch\"" +
+    "}";
+
+手写方式很简单，但是要注意日期格式：Date Formate
+1.2使用集合
+
+集合是key:value数据类型，可以代表json结构.
+
+Map<String, Object> json = new HashMap<String, Object>();
+json.put("user","kimchy");
+json.put("postDate",new Date());
+json.put("message","trying out Elasticsearch");
+
+1.3使用JACKSON序列化
+
+ElasticSearch已经使用了jackson，可以直接使用它把javabean转为json.
+// instance a json mapper
+ObjectMapper mapper = new ObjectMapper(); // create once, reuse
+// generate json
+byte[] json = mapper.writeValueAsBytes(yourbeaninstance);
+
+1.4使用ElasticSearch 帮助类
+
+import static org.elasticsearch.common.xcontent.XContentFactory.*;
+
+XContentBuilder builder = jsonBuilder()
+    .startObject()
+        .field("user", "kimchy")
+        .field("postDate", new Date())
+        .field("message", "trying out Elasticsearch")
+    .endObject()
+
+ String json = builder.string();
+
+二、创建索引
+
+下面的例子把json文档写入所以，索引库名为twitter、类型为tweet,id为1：
+
+import static org.elasticsearch.common.xcontent.XContentFactory.*;
+
+IndexResponse response = client.prepareIndex("twitter", "tweet", "1")
+        .setSource(jsonBuilder()
+                    .startObject()
+                        .field("user", "kimchy")
+                        .field("postDate", new Date())
+                        .field("message", "trying out Elasticsearch")
+                    .endObject()
+                  )
+        .get();
+
+
+也可以直接传人JSON字符串：
+
+String json = "{" +
+        "\"user\":\"kimchy\"," +
+        "\"postDate\":\"2013-01-30\"," +
+        "\"message\":\"trying out Elasticsearch\"" +
+    "}";
+
+IndexResponse response = client.prepareIndex("twitter", "tweet")
+        .setSource(json)
+        .get();
+
+可以调用response对象的方法获取返回信息：
+
+// 索引名称
+String _index = response.getIndex();
+// 类型名称
+String _type = response.getType();
+// 文档id
+String _id = response.getId();
+// 版本(if it's the first time you index this document, you will get: 1)
+long _version = response.getVersion();
+// 是否被创建is true if the document is a new one, false if it has been updated
+boolean created = response.isCreated();
+
+更简单的可以直接System.out.println(response)查看返回信息.
+
+
 
 
