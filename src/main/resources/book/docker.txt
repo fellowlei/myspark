@@ -1,0 +1,181 @@
+Ubuntu Docker 安装
+http://www.runoob.com/docker/ubuntu-docker-install.html
+
+前提条件
+Docker 要求 Ubuntu 系统的内核版本高于 3.10 ，查看本页面的前提条件来验证你的 Ubuntu 版本是否支持 Docker。
+通过 uname -r 命令查看你当前的内核版本
+uname -r
+
+
+使用脚本安装 Docker
+1、获取最新版本的 Docker 安装包
+wget -qO- https://get.docker.com/ | sh
+
+当要以非root用户可以直接运行docker时，需要执行 sudo usermod -aG docker runoob 命令，然后重新登陆
+2、启动docker 后台服务
+sudo service docker start
+
+3、测试运行hello-world
+docker run hello-world
+
+
+Docker Hello World
+Docker 允许你在容器内运行应用程序， 使用 docker run 命令来在容器内运行一个应用程序。
+docker run ubuntu:15.10 /bin/echo "Hello world"
+Hello world
+各个参数解析：
+    docker: Docker 的二进制执行文件。
+    run:与前面的 docker 组合来运行一个容器。
+    ubuntu:15.10指定要运行的镜像，Docker首先从本地主机上查找镜像是否存在，如果不存在，Docker 就会从镜像仓库 Docker Hub 下载公共镜像。
+    /bin/echo "Hello world": 在启动的容器里执行的命令
+
+
+运行交互式的容器
+我们通过docker的两个参数 -i -t，让docker运行的容器实现"对话"的能力
+ docker run -i -t ubuntu:15.10 /bin/bash
+各个参数解析：
+    -t:在新容器内指定一个伪终端或终端。
+    -i:允许你对容器内的标准输入 (STDIN) 进行交互。
+
+启动容器（后台模式）
+使用以下命令创建一个以进程方式运行的容器
+docker run -d ubuntu:15.10 /bin/sh -c "while true; do echo hello world; sleep 1; done"
+2b1b7a428627c51ab8810d541d759f072b4fc75487eed05812646b8534a2fe63
+
+需要确认容器有在运行，可以通过 docker ps 来查看
+docker ps
+
+CONTAINER ID:容器ID
+NAMES:自动分配的容器名称
+
+在容器内使用docker logs命令，查看容器内的标准输出
+docker logs 2b1b7a428627
+docker logs amazing_cori
+
+
+停止容器
+使用 docker stop 命令来停止容器:
+docker stop amazing_cori
+
+通过docker ps查看，容器已经停止工作:
+docker ps
+
+
+Docker 容器使用
+可以直接输入 docker 命令来查看到 Docker 客户端的所有命令选项
+docker
+例如我们要查看 docker stats 指令的具体使用方法
+docker stats --help
+
+运行一个web应用
+docker容器中运行一个 Python Flask 应用来运行一个web应用
+docker run -d -P training/webapp python app.py
+参数说明:
+    -d:让容器在后台运行。
+    -P:将容器内部使用的网络端口映射到我们使用的主机上。
+
+查看 WEB 应用容器
+使用 docker ps 来查看我们正在运行的容器
+docker ps
+
+我们也可以指定 -p 标识来绑定指定端口。
+docker run -d -p 5000:5000 training/webapp python app.py
+
+网络端口的快捷方式
+docker port 7a38a1ad55c6
+
+
+查看WEB应用程序日志
+docker logs [ID或者名字] 可以查看容器内部的标准输出。
+docker logs -f 7a38a1ad55c6
+-f:让 dokcer logs 像使用 tail -f 一样来输出容器内部的标准输出。
+
+
+查看WEB应用程序容器的进程
+可以使用 docker top 来查看容器内部运行的进程
+docker top determined_swanson
+
+检查WEB应用程序
+使用 docker inspect 来查看Docker的底层信息。它会返回一个 JSON 文件记录着 Docker 容器的配置和状态信息。
+docker inspect determined_swanson
+
+停止WEB应用容器
+docker stop determined_swanson
+
+重启WEB应用容器
+docker start determined_swanson
+
+可以使用 docker restart 命令来重启
+
+移除WEB应用容器
+docker rm determined_swanson
+删除容器时，容器必须是停止状态
+
+Docker 镜像使用
+当运行容器时，使用的镜像如果在本地中不存在，docker 就会自动从 docker 镜像仓库中下载，默认是从 Docker Hub 公共镜像源下载
+
+列出镜像列表
+docker images 来列出本地主机上的镜像
+docker images
+各个选项说明:
+    REPOSTITORY：表示镜像的仓库源
+    TAG：镜像的标签
+    IMAGE ID：镜像ID
+    CREATED：镜像创建时间
+    SIZE：镜像大小
+
+
+获取一个新的镜像
+docker pull ubuntu:13.10
+
+查找镜像
+可以从 Docker Hub 网站来搜索镜像，Docker Hub 网址为： https://hub.docker.com/
+
+也可以使用 docker search 命令来搜索镜像
+docker search httpd
+NAME:镜像仓库源的名称
+DESCRIPTION:镜像的描述
+OFFICIAL:是否docker官方发布
+
+拖取镜像
+使用命令 docker pull 来下载镜像
+docker pull httpd
+
+下载完成后，我们就可以使用这个镜像
+docker run httpd
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
