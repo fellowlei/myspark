@@ -1,0 +1,25 @@
+sw
+openresty-1.9.7.4.tar.gz
+ubuntu16.01
+
+
+(本文下载的是openresty-1.9.7.4.tar.gz )
+wget https://openresty.org/download/openresty-1.9.7.4.tar.gz
+
+安装相关依赖包
+$ apt-get install libreadline-dev libncurses5-dev libpcre3-dev libssl-dev perl make build-essential
+
+安装
+$ tar -zxvf openresty-1.9.7.4.tar.gz
+$ cd openresty-1.9.7.4
+$ ./configure --prefix=/usr/local/openresty\    //安装到/usr/local/openresty
+             --with-luajit\               //激活luajit
+             --with-http_iconv_module     //激活http_iconv_module
+$ make
+$ make install
+
+
+
+
+
+
