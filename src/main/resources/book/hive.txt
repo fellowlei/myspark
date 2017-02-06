@@ -205,3 +205,53 @@ hive> create table test4
     > from wyp;
 
 hive> select * from test4;
+
+
+===================================
+Hive数据导出三种方式
+http://blog.csdn.net/lifuxiangcaohui/article/details/40589881
+根据导出的地方不一样，将这些方式分为三种：
+（1）、导出到本地文件系统；
+（2）、导出到HDFS中；
+（3）、导出到Hive的另一个表中
+
+
+一、导出到本地文件系统
+ hive> insert overwrite local directory '/home/hadoop/result'
+    > select * from wyp;
+ 这条HQL的执行需要启用Mapreduce完成
+
+
+二、导出到HDFS中
+ hive> insert overwrite directory '/user/root/hdfs/result'
+    > select * from wyp;
+
+三、导出到Hive的另一个表中
+ hive> insert into table test
+    > partition (age='25')
+    > select id, name, tel
+    > from wyp;
+#####################################################################
+           这里输出了一堆Mapreduce任务信息，这里省略
+
+
+在Hive 0.11.0版本之间，数据的导出是不能指定列之间的分隔符的，只能用默认的列分隔符，也就是上面的^A来分割
+
+指定输出结果列之间的分隔符
+hive> insert overwrite local directory '/home/hadoop/result'
+hive> row format delimited
+hive> fields terminated by '\t'
+hive> select * from test;
+
+
+
+hive> insert overwrite local directory '/home/hadoop/result'
+    > row format delimited
+    > fields terminated by '\t'
+    > select * from wyp;
+
+我们还可以用hive的-e和-f参数来导出数据。
+其中-e 表示后面直接接带双引号的sql语句；而-f是接一个文件，文件的内容为一个sql语句
+hive -e "select * from wyp" >> local/wyp.txt
+
+hive -f wyp.sql >> local/wyp2.txt
