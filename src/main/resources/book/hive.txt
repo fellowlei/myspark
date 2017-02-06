@@ -108,3 +108,100 @@ mysql5.6
     解决Hive启动，Hive metastore database is not initialized的错误。
     出错原因：重新安装Hive和MySQL，导致版本、配置不一致。在终端执行如下命令:
     schematool -dbType mysql -initSchema
+
+
+==========================================
+Hive四种数据导入方式
+http://blog.csdn.net/lifuxiangcaohui/article/details/40588929
+
+Hive的几种常见的数据导入方式
+这里介绍四种：
+（1）、从本地文件系统中导入数据到Hive表；
+（2）、从HDFS上导入数据到Hive表；
+（3）、从别的表中查询出相应的数据并导入到Hive表中；
+（4）、在创建表的时候通过从别的表中查询出相应的记录并插入到所创建的表中。
+
+一、从本地文件系统中导入数据到Hive表
+hive里面创建好表
+create table wyp (id int, name string, age int, tel string)
+row format delimited
+fields terminated by '\t'
+stored as textfile
+
+cat wyp.txt
+1       wyp     25      13188888888888
+2       test    30      13888888888888
+3       zs      34      899314121
+
+数据导入到wyp表
+load data local inpath 'wyp.txt' into table wyp;
+
+查看
+select * from wyp;
+dfs -ls /user/hive/warehouse/wyp;
+
+
+
+二、HDFS上导入数据到Hive表
+将数据临时复制到HDFS的一个目录
+hadoop fs -put ./add.txt  ./
+
+bin/hadoop fs -cat /user/root/add.txt
+5   wyp1    23  131212121212
+6   wyp2    24  134535353535
+7   wyp3    25  132453535353
+8   wyp4    26  154243434355
+
+将这个文件里面的内容导入到Hive表中
+load data inpath '/user/root/add.txt' into table wyp;
+
+查看
+select * from wyp;
+
+三、从别的表中查询出相应的数据并导入到Hive表中
+create table test (id int, name string, tel string) partitioned by (age int)
+row format delimited
+fields terminated by '\t'
+stored as textfile
+大体和wyp表的建表语句类似，只不过test表里面用age作为了分区字段
+
+将wyp表中的查询结果并插入到test表中
+hive> insert into table test
+    > partition (age='25')
+    > select id, name, tel
+    > from wyp;
+#####################################################################
+           这里输出了一堆Mapreduce任务信息，这里省略
+#####################################################################
+Total MapReduce CPU Time Spent: 1 seconds 310 msec
+OK
+Time taken: 19.125 seconds
+
+查看
+select * from wyp;
+
+
+也可以在select语句里面通过使用分区值来动态指明分区
+hive> set hive.exec.dynamic.partition.mode=nonstrict;
+hive> insert into table test
+    > partition (age)
+    > select id, name,
+    > tel, age
+    > from wyp;
+#####################################################################
+           这里输出了一堆Mapreduce任务信息，这里省略
+#####################################################################
+Total MapReduce CPU Time Spent: 1 seconds 510 msec
+OK
+Time taken: 17.712 seconds
+
+查看
+select * from wyp;
+
+四、在创建表的时候通过从别的表中查询出相应的记录并插入到所创建的表中
+hive> create table test4
+    > as
+    > select id, name, tel
+    > from wyp;
+
+hive> select * from test4;
