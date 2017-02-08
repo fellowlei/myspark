@@ -23,3 +23,56 @@ $ make install
 
 
 
+============================================================
+nginx+lua项目构建
+http://jinnianshilongnian.iteye.com/blog/2186270
+
+nginx+lua项目构建
+/app/example
+项目目录结构如下所示：
+example
+    example.conf     ---该项目的nginx 配置文件
+    lua              ---我们自己的lua代码
+      test.lua
+
+1. /usr/local/openresty/nginx/conf/nginx.conf配置文件如下(此处我们最小化了配置文件)
+----nginx.conf
+#user  nobody;
+worker_processes  1;
+error_log  logs/error.log;
+pid        logs/nginx.pid;
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    lua_package_path "/usr/local/openresty/lualib/?.lua;;";  #lua 模块
+    lua_package_cpath "/usr/local/openresty/lualib/?.so;;";  #c模块
+
+    include /app/example/example.conf;
+}
+
+2. /app/example/example.conf配置文件如下
+server {
+	listen 80;
+	server_name 80;
+	location /lua {
+		default_type 'text/html';
+		lua_code_cache off; #debug only
+		content_by_lua_file /app/example/lua/test.lua;
+	}
+}
+
+3. lua文件/app/example/lua/test.lua
+ngx.say("hello world");
+
+4. test
+ sbin/nginx  -t
+5. reload
+ sbin/nginx -s reload
+
+
+
