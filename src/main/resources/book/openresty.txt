@@ -76,7 +76,7 @@ ngx.say("hello world");
 
 
 auto route
-===========================================
+================================================
 /app/example/example.conf
  lua_shared_dict configs 1m;
  upstream fetchback1 {
@@ -144,3 +144,204 @@ if res ~= nil then
 else
      ngx.say("res is nil")
 end
+
+redis install
+===================================================
+Installation
+Download, extract and compile Redis with:
+$ wget http://download.redis.io/releases/redis-3.2.7.tar.gz
+$ tar xzf redis-3.2.7.tar.gz
+$ cd redis-3.2.7
+$ make
+
+
+start redis
+/usr/local/redis/src/redis-server --port 6379 --daemonize yes
+/usr/local/redis/src/redis-server --port 6380 --daemonize yes
+
+
+
+
+redis shared
+===================================================
+https://github.com/bungle/lua-resty-murmurhash2
+
+add file
+/usr/local/openresty/lualib/resty/murmurhash2.lua
+
+/app/example/lualib/route.lua
+local mmh2 = require "resty.murmurhash2"
+
+-- hash test
+local function hashtest()
+	local hash = mmh2 "test" -- hash contains number 403862830
+	ngx.say("hash result:" .. hash)
+end
+-- redis shard
+local redis = {"redis_01","redis_02"}
+
+local function getLocation(id)
+  local hash = mmh2(id.."");
+  local index = hash % #redis;
+  local index = index + 1; -- begin 0
+  return redis[index];
+end
+
+-- test
+local function test()
+	for i=1,8 do
+		local loc = getLocation(i)
+		ngx.say(loc)
+	end
+end
+
+local route = {
+	getLocation=getLocation,
+	hashtest=hashtest
+}
+return route
+
+
+====================================================
+single get redis
+
+need
+/app/example/lualib/route.lua
+
+/app/example/routetest.lua
+lua_package_path "/app/example/lualib/?.lua;;";
+upstream redis_01 {
+    server 127.0.0.1:6379;
+}
+upstream redis_02 {
+    server 127.0.0.1:6380;
+}
+
+server {
+	listen 80;
+	server_name localhost;
+	default_type 'text/html';
+
+
+	location /redis_01 {
+		internal;
+     		redis2_raw_queries $args $echo_request_body;
+     		redis2_pass redis_01;
+	}
+	location /redis_02 {
+		internal;
+     		redis2_raw_queries $args $echo_request_body;
+     		redis2_pass redis_02;
+	}
+	location /get {
+    	content_by_lua_file /app/example/lua/getredis.lua;
+    }
+	location /testlocation {
+		set_unescape_uri $key $arg_key;
+		content_by_lua_file /app/example/lua/testlocation.lua;
+	}
+}
+
+/app/example/lua/getredis.lua
+--------------
+local route = require('route')
+local parser = require "redis.parser"
+
+ local reqs = {
+     {"set","name","mark"},
+     {"get", "name"}
+ }
+
+ local raw_reqs = {}
+ for i, req in ipairs(reqs) do
+     table.insert(raw_reqs, parser.build_query(req))
+ end
+
+ local location = "/"..route.getLocation(reqs[1][2]).."?";
+ ngx.say(location);
+ local res = ngx.location.capture(location .. #reqs,
+     { body = table.concat(raw_reqs, "") })
+
+ if res.status ~= 200 or not res.body then
+     ngx.log(ngx.ERR, "failed to query redis")
+     ngx.exit(500)
+ end
+
+ local replies = parser.parse_replies(res.body, #reqs)
+ for i, reply in ipairs(replies) do
+     ngx.say(reply[1])
+ end
+
+
+--------------
+test
+http://localhost/get
+
+
+====================================
+location /testlocation {
+		set_unescape_uri $key $arg_key;
+		content_by_lua_file /app/example/lua/testlocation.lua;
+}
+
+
+/app/example/lua/testlocation.lua
+-------------
+local route = require('route')
+local mmh2 = require "resty.murmurhash2"
+local hash = mmh2(ngx.var.key) -- hash contains number 403862830
+ngx.say(ngx.var.key..": hash result:" .. hash)
+
+ngx.say(route.getLocation(ngx.var.key));
+
+
+test
+http://localhost/testlocation?key=name
+
+============================================
+multi get redis
+
+location /multiget{
+		content_by_lua_file /app/example/lua/multiget.lua;
+}
+
+
+/app/example/lua/multiget.lua
+--------------------
+local route = require('route')
+local cjson = require('cjson')
+local parser = require "redis.parser"
+
+ local cmd1 = {{"set","name1","mark1"},{"get","name1"}}
+ local cmd2 = {{"set","name2","mark2"},{"get","name2"}}
+
+ local cmdlist = {}
+ table.insert(cmdlist,cmd1)
+ table.insert(cmdlist,cmd2)
+
+ local reqs = {}
+ for i,req in ipairs(cmdlist) do
+ 	local raw_reqs = {}
+        for j, req2 in ipairs(req) do
+		table.insert(raw_reqs,parser.build_query(req2))
+	end
+	ngx.say(req[1][2].." route ".. route.getLocation(req[1][2]));
+ 	table.insert(reqs,{"/"..route.getLocation(req[1][2]).."?"..#req,{
+		body=table.concat(raw_reqs,"")}});
+ end
+
+ local resps = { ngx.location.capture_multi(reqs) }
+
+ for i, resp in ipairs(resps) do
+ 	if resp.status == 200 then
+		local replies = parser.parse_replies(resp.body,#cmdlist[i])
+		for j,reply in ipairs(replies) do
+			ngx.say(reply[1])
+		end
+	end
+ end
+
+
+
+
+
