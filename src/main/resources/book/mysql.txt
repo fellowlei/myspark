@@ -53,6 +53,9 @@ ubuntu如何启动/停止/重启MySQL
     show variables like "char%";
 
 
+#view mysql port
+netstat -untlp | grep mysql | awk '{print $4}' | awk -F[:] '{print $2}'
+
 
 #########################################################
 mysql主从复制（超简单）
