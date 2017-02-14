@@ -39,3 +39,14 @@ echo "gen clock.png success"
 phantomjs rasterize.js 'http://en.wikipedia.org/w/index.php?title=Jakarta&printable=yes' jakarta.pdf
 echo "gen jakarta.pdf success"
 
+
+#convert png size
+#install ImageMagick
+#wget https://www.imagemagick.org/download/ImageMagick.tar.gz
+#tar -xvf ImageMagick.tar.gz
+#cd ImageMagick-7.0.4-8/
+#./configure 
+#make
+
+#convert png
+#convert -resize 320X240 github.png  github.min.png
