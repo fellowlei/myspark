@@ -1,0 +1,6 @@
+linux study
+Unix Toolbox - 中文版
+http://www.92csz.com/study/UnixToolbox-zh_CN.html
+
+Linux入门教程
+http://www.92csz.com/study/linux/
