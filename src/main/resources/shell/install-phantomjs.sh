@@ -24,6 +24,16 @@ page.open('http://github.com/', function() {
 """ > github.js
 echo "gen github.js success"
 
+echo """var page = require('webpage').create();
+var system = require("system")
+var url = "http://" + system.args[1];
+var name = system.args[2];
+page.open(url, function() {
+  page.render(name);
+  phantom.exit();
+});
+""" > baidu.js
+
 echo "start test capture..."
 phantomjs github.js
 echo "gen github png success"
