@@ -4,3 +4,33 @@ http://www.92csz.com/study/UnixToolbox-zh_CN.html
 
 Linux入门教程
 http://www.92csz.com/study/linux/
+
+
+===========================================
+#linux mail send email
+
+#install
+apt install mailutils
+
+#http://www.mzone.cc/article/317.html
+#send mail
+echo "test" | mail test@test.com
+
+#send mail with title
+echo "test" | mail -s "mail title" test@test.com
+
+#use file to send email
+echo -s "mail tilte" test@test.com < mailcontent.txt
+
+#send mail by type content
+#type content then ctrl+d to send
+mail -s "mail title"  test@test.com
+
+
+#send email with attach file
+#install
+apt install sharutils
+
+#send email with attach file
+uuencode test.txt attachname | mail -s "title" test@test.com<mail_content.txt
+============================================
